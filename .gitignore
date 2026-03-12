@@ -2,6 +2,11 @@ __pycache__/
 *.pyc
 .DS_Store
 
-# Rendered artifacts are versioned by choice, not by default.
-architecture/rendered/*.png
-architecture/rendered/*.svg
+# Ignore working artifacts under architecture/
+architecture/**
+!architecture/raw/
+!architecture/rendered/
+!architecture/specs/
+!architecture/raw/.gitkeep
+!architecture/rendered/.gitkeep
+!architecture/specs/.gitkeep

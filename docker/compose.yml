@@ -5,6 +5,9 @@ services:
     volumes:
       - ../:/workspace
     entrypoint:
-      - /bin/sh
-      - -lc
-    command: "sh scripts/render.sh architecture/raw architecture/rendered png"
+      - sh
+      - scripts/render.sh
+    command:
+      - architecture/raw
+      - architecture/rendered
+      - png

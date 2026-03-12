@@ -20,6 +20,26 @@ fi
 
 mkdir -p "$OUT_DIR"
 
+drawio_export() {
+  fmt="$1"
+  src="$2"
+  out="$3"
+
+  if command -v xvfb-run >/dev/null 2>&1; then
+    if [ "$(id -u)" = "0" ]; then
+      xvfb-run -a drawio --no-sandbox --export --format "$fmt" --transparent --output "$out" "$src"
+    else
+      xvfb-run -a drawio --export --format "$fmt" --transparent --output "$out" "$src"
+    fi
+  else
+    if [ "$(id -u)" = "0" ]; then
+      drawio --no-sandbox --export --format "$fmt" --transparent --output "$out" "$src"
+    else
+      drawio --export --format "$fmt" --transparent --output "$out" "$src"
+    fi
+  fi
+}
+
 found=0
 for f in "$RAW_DIR"/*.drawio; do
   if [ ! -e "$f" ]; then
@@ -29,10 +49,10 @@ for f in "$RAW_DIR"/*.drawio; do
   name=$(basename "$f" .drawio)
   echo "Rendering $f"
   if [ "$FORMAT" = "png" ] || [ "$FORMAT" = "both" ]; then
-    drawio --export --format png --transparent --output "$OUT_DIR/$name.png" "$f"
+    drawio_export png "$f" "$OUT_DIR/$name.png"
   fi
   if [ "$FORMAT" = "svg" ] || [ "$FORMAT" = "both" ]; then
-    drawio --export --format svg --transparent --output "$OUT_DIR/$name.svg" "$f"
+    drawio_export svg "$f" "$OUT_DIR/$name.svg"
   fi
 done
 
