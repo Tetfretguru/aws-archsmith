@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# Rendered artifacts are versioned by choice, not by default.
+architecture/rendered/*.png
+architecture/rendered/*.svg

@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" modified="2026-03-12T16:05:39Z" agent="aws-archsmith" version="24.7.17">
+  <diagram id="807a0bba" name="Page-1">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="vpc" value="VPC" style="rounded=0;whiteSpace=wrap;html=1;dashed=1;dashPattern=8 8;strokeColor=#232F3E;fillColor=none;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="240" y="140" width="1060" height="680" as="geometry" />
+          </mxCell>
+        <mxCell id="public-subnet" value="Public Subnet" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#8AA3B5;fillColor=#F5FAFF;" vertex="1" parent="vpc">
+          <mxGeometry x="280" y="200" width="460" height="280" as="geometry" />
+          </mxCell>
+        <mxCell id="private-subnet" value="Private Subnet" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#8AA3B5;fillColor=#F2F4F8;" vertex="1" parent="vpc">
+          <mxGeometry x="760" y="200" width="500" height="520" as="geometry" />
+          </mxCell>
+        <mxCell id="application-load-balancer" value="Application Load Balancer" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#1B4F72;fillColor=#EAF4FF;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="70" width="220" height="60" as="geometry" />
+          </mxCell>
+        <mxCell id="ecs-service" value="ECS Service" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#1B4F72;fillColor=#EAF4FF;fontSize=12;" vertex="1" parent="private-subnet">
+          <mxGeometry x="360" y="260" width="220" height="60" as="geometry" />
+          </mxCell>
+        <mxCell id="rds-postgresql" value="RDS PostgreSQL" style="rounded=1;whiteSpace=wrap;html=1;strokeColor=#1B4F72;fillColor=#EAF4FF;fontSize=12;" vertex="1" parent="private-subnet">
+          <mxGeometry x="760" y="260" width="220" height="60" as="geometry" />
+          </mxCell>
+        <mxCell id="e-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="application-load-balancer" target="ecs-service">
+          <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        <mxCell id="e-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="ecs-service" target="rds-postgresql">
+          <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </root>
+      </mxGraphModel>
+    </diagram>
+  </mxfile>
