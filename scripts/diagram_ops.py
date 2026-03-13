@@ -47,7 +47,7 @@ def ensure_dirs() -> None:
     TMP_RENDER_INPUT.mkdir(parents=True, exist_ok=True)
 
 
-def startup_check() -> tuple[bool, list[str]]:
+def startup_check(*, require_docker: bool = True) -> tuple[bool, list[str]]:
     lines: list[str] = []
     ok = True
 
@@ -59,20 +59,23 @@ def startup_check() -> tuple[bool, list[str]]:
         ok = False
 
     docker = shutil.which("docker")
-    if docker:
-        lines.append(f"[ok] docker: {docker}")
-    else:
-        lines.append("[error] docker not found in PATH")
-        ok = False
-
-    if docker:
-        proc = subprocess.run(["docker", "compose", "version"], cwd=ROOT, text=True, capture_output=True)
-        if proc.returncode == 0:
-            first = (proc.stdout.strip() or proc.stderr.strip()).splitlines()[0]
-            lines.append(f"[ok] docker compose: {first}")
+    if require_docker:
+        if docker:
+            lines.append(f"[ok] docker: {docker}")
         else:
-            lines.append("[error] docker compose is not available")
+            lines.append("[error] docker not found in PATH")
             ok = False
+
+        if docker:
+            proc = subprocess.run(["docker", "compose", "version"], cwd=ROOT, text=True, capture_output=True)
+            if proc.returncode == 0:
+                first = (proc.stdout.strip() or proc.stderr.strip()).splitlines()[0]
+                lines.append(f"[ok] docker compose: {first}")
+            else:
+                lines.append("[error] docker compose is not available")
+                ok = False
+    else:
+        lines.append("[ok] docker check skipped (API XML-only mode)")
 
     try:
         ensure_dirs()

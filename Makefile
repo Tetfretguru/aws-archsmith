@@ -3,7 +3,7 @@ SHELL := /bin/sh
 NAME ?= baseline
 PROMPT ?= public alb, ecs service, rds postgres
 
-.PHONY: help init generate validate validate-file render render-file render-all demo start chat chat-file qa-smoke clean
+.PHONY: help init generate validate validate-file render render-file render-all demo start chat chat-file api-up api-down api-up-postgres api-down-postgres api-smoke qa-smoke clean
 
 help:
 	@printf "Targets:\n"
@@ -17,6 +17,11 @@ help:
 	@printf "  make start                         - interactive mode with startup checks\n"
 	@printf "  make chat                          - interactive natural language mode\n"
 	@printf "  make chat-file FILE=<n.drawio>     - interactive mode with active file\n"
+	@printf "  make api-up                        - start XML-only API container (SQLite)\n"
+	@printf "  make api-down                      - stop XML-only API container\n"
+	@printf "  make api-up-postgres               - start XML-only API container (Postgres)\n"
+	@printf "  make api-down-postgres             - stop XML-only API postgres stack\n"
+	@printf "  make api-smoke                     - run basic API smoke requests\n"
 	@printf "  make qa-smoke                      - run automated smoke QA checks\n"
 
 init:
@@ -55,6 +60,21 @@ chat:
 chat-file:
 	@test -n "$(FILE)" || (printf "FILE is required\n" && exit 2)
 	@python3 scripts/archsmith_cli.py --file "$(FILE)"
+
+api-up:
+	@docker compose -f docker/compose.api.yml up -d --build api
+
+api-down:
+	@docker compose -f docker/compose.api.yml down
+
+api-up-postgres:
+	@docker compose -f docker/compose.api.yml --profile postgres up -d --build api-postgres postgres
+
+api-down-postgres:
+	@docker compose -f docker/compose.api.yml --profile postgres down
+
+api-smoke:
+	@python3 scripts/api_smoke.py --base-url "http://127.0.0.1:8000"
 
 qa-smoke:
 	@python3 scripts/qa_smoke.py

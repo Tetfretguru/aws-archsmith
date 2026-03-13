@@ -1,0 +1,48 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    working_dir: /workspace
+    volumes:
+      - ../:/workspace
+      - archsmith_api_data:/data
+    environment:
+      ARCHSMITH_DB_URL: sqlite:////data/archsmith.db
+    ports:
+      - "8000:8000"
+
+  api-postgres:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    profiles: ["postgres"]
+    working_dir: /workspace
+    volumes:
+      - ../:/workspace
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ARCHSMITH_DB_URL: postgresql+psycopg://archsmith:archsmith@postgres:5432/archsmith
+    ports:
+      - "8001:8000"
+
+  postgres:
+    profiles: ["postgres"]
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: archsmith
+      POSTGRES_USER: archsmith
+      POSTGRES_PASSWORD: archsmith
+    volumes:
+      - archsmith_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U archsmith -d archsmith"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  archsmith_api_data:
+  archsmith_pg_data:
