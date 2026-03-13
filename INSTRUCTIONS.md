@@ -70,6 +70,31 @@ Render:
 docker compose -f docker/compose.yml run --rm renderer architecture/raw architecture/rendered png
 ```
 
+## API mode (container, XML-only)
+
+Start API with SQLite:
+
+```bash
+docker compose -f docker/compose.api.yml up -d --build api
+```
+
+Start API with Postgres profile:
+
+```bash
+docker compose -f docker/compose.api.yml --profile postgres up -d --build api-postgres postgres
+```
+
+API endpoints:
+
+- `GET /health`
+- `POST /v1/start`
+- `POST /v1/chat`
+- `POST /v1/validate`
+- `GET /v1/file`
+- `GET /v1/session/{session_id}`
+
+API flow never renders images. It only manages XML and validation.
+
 ## Multi-account incremental editing
 
 - Keep working on the same file unless the user asks for a new one.
