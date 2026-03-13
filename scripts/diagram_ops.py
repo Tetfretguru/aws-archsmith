@@ -145,7 +145,7 @@ def _canonical_from_text(text: str) -> list[str]:
 
 def generate_new(name: str, prompt: str, icon_set: str = "aws4") -> Path:
     ensure_dirs()
-    tree = build_diagram(name, prompt, icon_set)
+    tree = build_diagram(name, prompt, icon_set, box_fill="auto")
     out = RAW_DIR / f"{slugify(name)}.drawio"
     root = tree.getroot()
     if root is None:
@@ -245,7 +245,7 @@ def _add_service(graph_root: ET.Element, service: str, icon_set: str) -> bool:
         graph_root,
         cell_id=slugify(service),
         value=service,
-        style=service_style(service, icon_set),
+        style=service_style(service, icon_set, filled=False),
         x=x,
         y=y + row * step,
         w=96 if icon_set == "aws4" else 220,

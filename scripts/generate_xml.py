@@ -170,7 +170,24 @@ def service_group(service: str) -> str:
     return "compute"
 
 
-def service_style(service: str, icon_set: str) -> str:
+def box_fill_enabled(prompt: str, box_fill: str) -> bool:
+    if box_fill == "filled":
+        return True
+    if box_fill == "none":
+        return False
+
+    p = prompt.lower()
+    fill_tokens = [
+        "with fill",
+        "filled",
+        "solid background",
+        "background color",
+        "with background",
+    ]
+    return any(token in p for token in fill_tokens)
+
+
+def service_style(service: str, icon_set: str, *, filled: bool) -> str:
     if icon_set == "aws4":
         icon_key = AWS4_ICON_BY_SERVICE.get(service)
         if icon_key:
@@ -182,13 +199,13 @@ def service_style(service: str, icon_set: str) -> str:
 
     group = service_group(service)
     palette = {
-        "ingress": "strokeColor=#7A4E00;fillColor=#FFF3D6;",
-        "security": "strokeColor=#6B1F1F;fillColor=#FDECEC;",
-        "network": "strokeColor=#6F4B00;fillColor=#FFF7E6;",
-        "compute": "strokeColor=#1B4F72;fillColor=#EAF4FF;",
-        "messaging": "strokeColor=#5B4B8A;fillColor=#F2ECFF;",
-        "data": "strokeColor=#1D6F42;fillColor=#EAFBF2;",
-        "observability": "strokeColor=#5A5A5A;fillColor=#F3F3F3;",
+        "ingress": "strokeColor=#7A4E00;fillColor=#FFF3D6;" if filled else "strokeColor=#7A4E00;fillColor=none;",
+        "security": "strokeColor=#6B1F1F;fillColor=#FDECEC;" if filled else "strokeColor=#6B1F1F;fillColor=none;",
+        "network": "strokeColor=#6F4B00;fillColor=#FFF7E6;" if filled else "strokeColor=#6F4B00;fillColor=none;",
+        "compute": "strokeColor=#1B4F72;fillColor=#EAF4FF;" if filled else "strokeColor=#1B4F72;fillColor=none;",
+        "messaging": "strokeColor=#5B4B8A;fillColor=#F2ECFF;" if filled else "strokeColor=#5B4B8A;fillColor=none;",
+        "data": "strokeColor=#1D6F42;fillColor=#EAFBF2;" if filled else "strokeColor=#1D6F42;fillColor=none;",
+        "observability": "strokeColor=#5A5A5A;fillColor=#F3F3F3;" if filled else "strokeColor=#5A5A5A;fillColor=none;",
     }
     return "rounded=1;whiteSpace=wrap;html=1;fontSize=12;" + palette[group]
 
@@ -257,8 +274,9 @@ def add_edge(
     ET.SubElement(edge, "mxGeometry", {"relative": "1", "as": "geometry"})
 
 
-def build_diagram(name: str, prompt: str, icon_set: str) -> ET.ElementTree:
+def build_diagram(name: str, prompt: str, icon_set: str, box_fill: str = "auto") -> ET.ElementTree:
     services = parse_services(prompt)
+    filled = box_fill_enabled(prompt, box_fill)
 
     mxfile = ET.Element(
         "mxfile",
@@ -309,7 +327,11 @@ def build_diagram(name: str, prompt: str, icon_set: str) -> ET.ElementTree:
         root,
         cell_id="public-subnet",
         value="Public Subnet",
-        style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#8AA3B5;fillColor=#F5FAFF;",
+        style=(
+            "rounded=0;whiteSpace=wrap;html=1;strokeColor=#8AA3B5;fillColor=#F5FAFF;"
+            if filled
+            else "rounded=0;whiteSpace=wrap;html=1;strokeColor=#8AA3B5;fillColor=none;"
+        ),
         x=280,
         y=200,
         w=460,
@@ -320,7 +342,11 @@ def build_diagram(name: str, prompt: str, icon_set: str) -> ET.ElementTree:
         root,
         cell_id="private-subnet",
         value="Private Subnet",
-        style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#8AA3B5;fillColor=#F2F4F8;",
+        style=(
+            "rounded=0;whiteSpace=wrap;html=1;strokeColor=#8AA3B5;fillColor=#F2F4F8;"
+            if filled
+            else "rounded=0;whiteSpace=wrap;html=1;strokeColor=#8AA3B5;fillColor=none;"
+        ),
         x=760,
         y=200,
         w=500,
@@ -360,7 +386,7 @@ def build_diagram(name: str, prompt: str, icon_set: str) -> ET.ElementTree:
             root,
             cell_id=sid,
             value=svc,
-            style=service_style(svc, icon_set),
+            style=service_style(svc, icon_set, filled=filled),
             x=x,
             y=y,
             w=service_w,
@@ -443,9 +469,15 @@ def main() -> int:
         default="aws4",
         help="Service icon style set (default: aws4)",
     )
+    parser.add_argument(
+        "--box-fill",
+        choices=["auto", "none", "filled"],
+        default="auto",
+        help="Fallback box fill mode (default: auto, no fill unless prompt asks for fill)",
+    )
     args = parser.parse_args()
 
-    diagram = build_diagram(args.name, args.prompt, args.icon_set)
+    diagram = build_diagram(args.name, args.prompt, args.icon_set, args.box_fill)
     root = diagram.getroot()
     if root is None:
         raise RuntimeError("Failed to build XML root element")
