@@ -208,17 +208,50 @@ def add_cell(root: ET.Element, *, cell_id: str, value: str, style: str, x: int, 
     ET.SubElement(cell, "mxGeometry", {"x": str(x), "y": str(y), "width": str(w), "height": str(h), "as": "geometry"})
 
 
-def add_edge(root: ET.Element, *, edge_id: str, source: str, target: str, parent: str = "1") -> None:
+def edge_anchor_style(source_box: tuple[float, float, float, float], target_box: tuple[float, float, float, float]) -> str:
+    sx, sy, sw, sh = source_box
+    tx, ty, tw, th = target_box
+    scx = sx + sw / 2.0
+    scy = sy + sh / 2.0
+    tcx = tx + tw / 2.0
+    tcy = ty + th / 2.0
+
+    if abs(scx - tcx) >= abs(scy - tcy):
+        if scx <= tcx:
+            return "exitX=1;exitY=0.5;exitPerimeter=1;entryX=0;entryY=0.5;entryPerimeter=1;"
+        return "exitX=0;exitY=0.5;exitPerimeter=1;entryX=1;entryY=0.5;entryPerimeter=1;"
+
+    if scy <= tcy:
+        return "exitX=0.5;exitY=1;exitPerimeter=1;entryX=0.5;entryY=0;entryPerimeter=1;"
+    return "exitX=0.5;exitY=0;exitPerimeter=1;entryX=0.5;entryY=1;entryPerimeter=1;"
+
+
+def add_edge(
+    root: ET.Element,
+    *,
+    edge_id: str,
+    source: str,
+    target: str,
+    parent: str = "1",
+    source_box: tuple[float, float, float, float] | None = None,
+    target_box: tuple[float, float, float, float] | None = None,
+    label: str = "",
+) -> None:
+    style = "edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;"
+    if source_box and target_box:
+        style += edge_anchor_style(source_box, target_box)
+
     edge = ET.SubElement(
         root,
         "mxCell",
         {
             "id": edge_id,
-            "style": "edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endFill=1;",
+            "style": style,
             "edge": "1",
             "parent": parent,
             "source": source,
             "target": target,
+            "value": label,
         },
     )
     ET.SubElement(edge, "mxGeometry", {"relative": "1", "as": "geometry"})
@@ -310,6 +343,7 @@ def build_diagram(name: str, prompt: str, icon_set: str) -> ET.ElementTree:
     }
     counters: dict[str, int] = {key: 0 for key in placements}
     ids_by_group: dict[str, list[str]] = {key: [] for key in placements}
+    boxes_by_id: dict[str, tuple[float, float, float, float]] = {}
 
     for svc in services:
         sid = slugify(svc)
@@ -333,20 +367,40 @@ def build_diagram(name: str, prompt: str, icon_set: str) -> ET.ElementTree:
             h=service_h,
             parent=parent,
         )
+        boxes_by_id[sid] = (float(x), float(y), float(service_w), float(service_h))
 
     edge_n = 1
 
     def chain(ids: list[str]) -> None:
         nonlocal edge_n
         for i in range(len(ids) - 1):
-            add_edge(root, edge_id=f"e-{edge_n}", source=ids[i], target=ids[i + 1])
+            source = ids[i]
+            target = ids[i + 1]
+            add_edge(
+                root,
+                edge_id=f"e-{edge_n}",
+                source=source,
+                target=target,
+                source_box=boxes_by_id.get(source),
+                target_box=boxes_by_id.get(target),
+            )
             edge_n += 1
 
-    def bridge(source_ids: list[str], target_ids: list[str]) -> None:
+    def bridge(source_ids: list[str], target_ids: list[str], label: str = "") -> None:
         nonlocal edge_n
         if not source_ids or not target_ids:
             return
-        add_edge(root, edge_id=f"e-{edge_n}", source=source_ids[-1], target=target_ids[0])
+        source = source_ids[-1]
+        target = target_ids[0]
+        add_edge(
+            root,
+            edge_id=f"e-{edge_n}",
+            source=source,
+            target=target,
+            source_box=boxes_by_id.get(source),
+            target_box=boxes_by_id.get(target),
+            label=label,
+        )
         edge_n += 1
 
     chain(ids_by_group["ingress"])
@@ -354,13 +408,13 @@ def build_diagram(name: str, prompt: str, icon_set: str) -> ET.ElementTree:
     chain(ids_by_group["messaging"])
     chain(ids_by_group["data"])
 
-    bridge(ids_by_group["ingress"], ids_by_group["compute"])
-    bridge(ids_by_group["ingress"], ids_by_group["messaging"])
-    bridge(ids_by_group["compute"], ids_by_group["messaging"])
-    bridge(ids_by_group["compute"], ids_by_group["data"])
-    bridge(ids_by_group["messaging"], ids_by_group["data"])
-    bridge(ids_by_group["security"], ids_by_group["compute"])
-    bridge(ids_by_group["observability"], ids_by_group["compute"])
+    bridge(ids_by_group["ingress"], ids_by_group["compute"], label="REQUEST")
+    bridge(ids_by_group["ingress"], ids_by_group["messaging"], label="TRIGGER")
+    bridge(ids_by_group["compute"], ids_by_group["messaging"], label="EVENT")
+    bridge(ids_by_group["compute"], ids_by_group["data"], label="WRITE")
+    bridge(ids_by_group["messaging"], ids_by_group["data"], label="INGEST")
+    bridge(ids_by_group["security"], ids_by_group["compute"], label="AUTH")
+    bridge(ids_by_group["observability"], ids_by_group["compute"], label="METRICS")
 
     return ET.ElementTree(mxfile)
 

@@ -13,6 +13,39 @@ Core principle: validation before rendering.
 
 ## Commands
 
+Interactive mode:
+
+```bash
+./archsmith
+```
+
+or:
+
+```bash
+python3 scripts/archsmith_cli.py
+```
+
+First command in every session:
+
+```text
+:start
+```
+
+This initializes startup checks and confirms the workspace is ready.
+
+Short commands available inside interactive mode:
+
+- `:start`
+- `:help`
+- `:new <name>`
+- `:use <file>`
+- `:status`
+- `:validate`
+- `:render`
+- `:show`
+- `:icon <aws4|none>`
+- `:quit`
+
 Generate (AWS icons enabled by default):
 
 ```bash
@@ -44,6 +77,13 @@ docker compose -f docker/compose.yml run --rm renderer architecture/raw architec
 - Apply deltas only (add/remove/reconnect/reposition).
 - Re-run validation after each iteration.
 - Re-render and report updated output paths.
+
+Interactive behavior:
+
+- `:start` is the expected first action in a fresh interactive session.
+- If there is no active file, the first natural language prompt creates one.
+- If there is an active file, natural language input applies deltas (add/remove/connect).
+- Validation is mandatory before render.
 
 ## Quality gate
 

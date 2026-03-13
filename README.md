@@ -4,6 +4,14 @@ Local-first AWS architecture automation with Draw.io XML as the primary source o
 
 This repository is designed so the AI agent does the implementation work while you drive intent with plain language.
 
+## Agent quick start (`:start`)
+
+1. Open OpenCode, Claude Code, or Codex in this repo.
+2. Type `:start`.
+3. After the ready message, describe your task in natural language.
+
+Startup contract and expected behavior are defined in `START.md`.
+
 ## What it does
 
 - Keeps architecture definitions in uncompressed Draw.io XML (`.drawio`).
@@ -74,6 +82,36 @@ Observability:
 
 ## Quick start
 
+0. Start interactive mode (recommended):
+
+```bash
+./archsmith
+```
+
+Then run:
+
+```text
+:start
+```
+
+or:
+
+```bash
+python3 scripts/archsmith_cli.py
+```
+
+If `make` is available:
+
+```bash
+make chat
+```
+
+or with automatic startup checks at launch:
+
+```bash
+make start
+```
+
 1. Generate XML from an instruction prompt:
 
 ```bash
@@ -138,6 +176,23 @@ python3 scripts/validate_drawio.py architecture/raw/multi-account-etl.drawio
 docker compose -f docker/compose.yml run --rm renderer architecture/raw architecture/rendered png
 ```
 
+## Interactive commands
+
+Inside `archsmith_cli.py`, use short commands:
+
+- `:help` show capabilities and command reference
+- `:start` run startup checks and initialize the session
+- `:new <name>` set a new working file
+- `:use <file>` switch active file
+- `:status` show active file and last validation/render state
+- `:validate` validate current file
+- `:render` validate + render current file
+- `:show` quick summary (service and edge counts)
+- `:icon <aws4|none>` choose icon rendering mode for future updates
+- `:quit` exit
+
+Any line that does not start with `:` is interpreted as a natural language change request.
+
 ## QA smoke checks
 
 Run the automated smoke suite:
@@ -151,6 +206,10 @@ If `make` is installed:
 ```bash
 make qa-smoke
 ```
+
+## User guide
+
+For interactive examples and session patterns, see `docs/USER_GUIDE.md`.
 
 Outputs land in `architecture/rendered/`.
 

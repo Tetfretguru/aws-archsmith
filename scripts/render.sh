@@ -27,15 +27,15 @@ drawio_export() {
 
   if command -v xvfb-run >/dev/null 2>&1; then
     if [ "$(id -u)" = "0" ]; then
-      xvfb-run -a drawio --no-sandbox --export --format "$fmt" --transparent --output "$out" "$src"
+      xvfb-run -a drawio --no-sandbox --export --format "$fmt" --output "$out" "$src"
     else
-      xvfb-run -a drawio --export --format "$fmt" --transparent --output "$out" "$src"
+      xvfb-run -a drawio --export --format "$fmt" --output "$out" "$src"
     fi
   else
     if [ "$(id -u)" = "0" ]; then
-      drawio --no-sandbox --export --format "$fmt" --transparent --output "$out" "$src"
+      drawio --no-sandbox --export --format "$fmt" --output "$out" "$src"
     else
-      drawio --export --format "$fmt" --transparent --output "$out" "$src"
+      drawio --export --format "$fmt" --output "$out" "$src"
     fi
   fi
 }
