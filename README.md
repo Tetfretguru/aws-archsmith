@@ -211,6 +211,37 @@ make qa-smoke
 
 For interactive examples and session patterns, see `docs/USER_GUIDE.md`.
 
+## API mode (XML-only)
+
+Run API container with SQLite:
+
+```bash
+make api-up
+```
+
+Or directly:
+
+```bash
+docker compose -f docker/compose.api.yml up -d --build api
+```
+
+Run API with Postgres profile:
+
+```bash
+make api-up-postgres
+```
+
+Smoke test:
+
+```bash
+make api-smoke
+```
+
+API reference and endpoint examples:
+
+- `docs/API.md`
+- `examples/api.http`
+
 Outputs land in `architecture/rendered/`.
 
 ## Notes
