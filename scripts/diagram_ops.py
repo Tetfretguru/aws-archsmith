@@ -434,8 +434,8 @@ def _add_service(graph_root: ET.Element, service: str, icon_set: str) -> bool:
         style=service_style(service, icon_set, filled=False),
         x=x,
         y=y + row * step,
-        w=96 if icon_set == "aws4" else 220,
-        h=96 if icon_set == "aws4" else 60,
+        w=78 if icon_set == "aws4" else 220,
+        h=78 if icon_set == "aws4" else 60,
         parent=parent,
     )
     return True

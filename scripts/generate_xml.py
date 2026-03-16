@@ -121,10 +121,10 @@ AWS4_ICON_BY_SERVICE = {
     "Cognito": "cognito",
     "Shield": "shield",
     "CloudWatch": "cloudwatch",
-    "X-Ray": "x_ray",
+    "X-Ray": "xray",
     "CloudTrail": "cloudtrail",
     "NAT Gateway": "nat_gateway",
-    "VPC Endpoint": "vpc_endpoints",
+    "VPC Endpoint": "vpc_privatelink",
 }
 
 
@@ -192,9 +192,11 @@ def service_style(service: str, icon_set: str, *, filled: bool) -> str:
         icon_key = AWS4_ICON_BY_SERVICE.get(service)
         if icon_key:
             return (
-                f"shape=mxgraph.aws4.{icon_key};"
-                "html=1;whiteSpace=wrap;align=center;verticalAlign=top;"
-                "verticalLabelPosition=bottom;labelPosition=center;fontSize=11;spacingTop=4;"
+                "sketch=0;outlineConnect=0;gradientColor=none;fillColor=#232F3D;"
+                "strokeColor=#ffffff;dashed=0;html=1;whiteSpace=wrap;align=center;"
+                "verticalLabelPosition=bottom;verticalAlign=top;labelPosition=center;"
+                "fontColor=#232F3E;fontSize=11;spacingTop=4;aspect=fixed;"
+                f"shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.{icon_key};"
             )
 
     group = service_group(service)
@@ -355,8 +357,8 @@ def build_diagram(name: str, prompt: str, icon_set: str, box_fill: str = "auto")
     )
 
     icon_mode = icon_set == "aws4"
-    service_w = 96 if icon_mode else 220
-    service_h = 96 if icon_mode else 60
+    service_w = 78 if icon_mode else 220
+    service_h = 78 if icon_mode else 60
 
     placements = {
         "ingress": {"parent": "1", "x": 30, "y": 60, "step": 118 if icon_mode else 90},

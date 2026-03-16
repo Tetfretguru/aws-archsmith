@@ -1,0 +1,21 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "archsmith-plan",
+  "instructions": [
+    "AGENTS.md",
+    "ARCHITECT_GUIDELINES.md",
+    "INSTRUCTIONS.md"
+  ],
+  "permission": {
+    "edit": "ask",
+    "webfetch": "allow",
+    "bash": {
+      "*": "ask",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "python3 scripts/api_smoke.py*": "allow",
+      "python3 scripts/validate_drawio.py*": "allow"
+    }
+  }
+}

@@ -25,6 +25,12 @@ from api.db import (
 from api.schemas import (
     ChatRequest,
     ChatResponse,
+    DiagramRedefineApplyRequest,
+    DiagramRedefineApplyResponse,
+    DiagramRedefinePlanRequest,
+    DiagramRedefinePlanResponse,
+    DiagramUnderstandRequest,
+    DiagramUnderstandResponse,
     FileResponse,
     SessionResponse,
     StartRequest,
@@ -33,7 +39,16 @@ from api.schemas import (
     ValidateResponse,
     ValidationStatus,
 )
-from api.service import chat_apply, read_xml, resolve_raw_file, run_startup, validate_inline_xml
+from api.service import (
+    apply_redefine,
+    chat_apply,
+    plan_redefine,
+    read_xml,
+    resolve_raw_file,
+    run_startup,
+    understand_existing,
+    validate_inline_xml,
+)
 from diagram_ops import validate_path
 
 
@@ -183,6 +198,95 @@ def get_session(session_id: str, db: Session = Depends(get_db)) -> SessionRespon
         created_at=sess.created_at.isoformat() + "Z",
         updated_at=sess.updated_at.isoformat() + "Z",
         counters=session_summary(db, session_id),
+    )
+
+
+@app.post("/v1/diagram/understand", response_model=DiagramUnderstandResponse)
+def diagram_understand(payload: DiagramUnderstandRequest, db: Session = Depends(get_db)) -> DiagramUnderstandResponse:
+    session_id = payload.session_id
+    active_file = None
+    if session_id:
+        sess = db.get(ChatSession, session_id)
+        if sess is None:
+            raise HTTPException(status_code=404, detail=f"session not found: {session_id}")
+        active_file = sess.active_file
+
+    try:
+        summary = understand_existing(session_active_file=active_file, file_path=payload.file_path)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    return DiagramUnderstandResponse(session_id=session_id, summary=summary)
+
+
+@app.post("/v1/diagram/redefine/plan", response_model=DiagramRedefinePlanResponse)
+def diagram_redefine_plan(payload: DiagramRedefinePlanRequest, db: Session = Depends(get_db)) -> DiagramRedefinePlanResponse:
+    session = get_or_create_session(db, session_id=payload.session_id) if payload.session_id else None
+    session_id = session.id if session else None
+    icon_set = payload.icon_set or (session.icon_set if session else "aws4")
+    active_file = session.active_file if session else None
+
+    try:
+        path, planned, materialized = plan_redefine(
+            message=payload.message,
+            session_active_file=active_file,
+            file_path=payload.file_path,
+            file_name=payload.file_name,
+            icon_set=icon_set,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    if materialized:
+        ok, msg = validate_path(path)
+    else:
+        ok, msg = True, f"Plan generated for new file {path.name}; validation will run on apply"
+    if session:
+        touch_session(db, session, active_file=(str(path) if materialized else session.active_file), icon_set=icon_set)
+        add_operation(db, session.id, kind="diagram_redefine_plan", status="success" if ok else "validation_failed", detail=msg)
+
+    return DiagramRedefinePlanResponse(
+        session_id=session_id,
+        file_path=str(path),
+        planned_changes=planned,
+        validation=ValidationStatus(ok=ok, message=msg),
+    )
+
+
+@app.post("/v1/diagram/redefine/apply", response_model=DiagramRedefineApplyResponse)
+def diagram_redefine_apply(payload: DiagramRedefineApplyRequest, db: Session = Depends(get_db)) -> DiagramRedefineApplyResponse:
+    session = get_or_create_session(db, session_id=payload.session_id) if payload.session_id else None
+    session_id = session.id if session else None
+    icon_set = payload.icon_set or (session.icon_set if session else "aws4")
+    active_file = session.active_file if session else None
+
+    try:
+        path, changed = apply_redefine(
+            message=payload.message,
+            session_active_file=active_file,
+            file_path=payload.file_path,
+            file_name=payload.file_name,
+            icon_set=icon_set,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    xml_content = read_xml(path)
+    ok, msg = validate_path(path)
+
+    if session:
+        touch_session(db, session, active_file=str(path), icon_set=icon_set)
+        add_message(db, session.id, "user", payload.message)
+        add_message(db, session.id, "assistant", "; ".join(changed))
+        add_operation(db, session.id, kind="diagram_redefine_apply", status="success" if ok else "validation_failed", detail=msg)
+        add_artifact(db, session.id, str(path), xml_content, ok, msg)
+
+    return DiagramRedefineApplyResponse(
+        session_id=session_id,
+        file_path=str(path),
+        changed=changed,
+        xml_content=xml_content,
+        validation=ValidationStatus(ok=ok, message=msg),
     )
 
 
