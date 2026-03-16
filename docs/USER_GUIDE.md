@@ -46,6 +46,9 @@ archsmith> connect EventBridge -> ECS Fargate Task -> Redshift
 - `:validate` validate active file
 - `:render` validate and render active file
 - `:show` quick summary for active diagram
+- `:understand [file]` inspect active/existing `.drawio` and print detected structure
+- `:redefine <request>` build a no-write redefine plan from natural language
+- `:apply` apply the last redefine plan
 - `:icon <aws4|none>` choose icon mode for new additions
 - `:quit` exit
 
@@ -55,6 +58,8 @@ archsmith> connect EventBridge -> ECS Fargate Task -> Redshift
 - Run `:start` first in a fresh session.
 - The first natural-language request creates a diagram if none is active.
 - Subsequent requests apply incremental updates to the active file.
+- Use `:redefine <request>` to preview changes first, then `:apply` to execute.
+- `:understand` works with uncompressed and compressed Draw.io files.
 - Rendering happens only after validation succeeds.
 
 ## Outputs

@@ -14,4 +14,6 @@ class SessionState:
     last_validation_ok: bool | None = None
     last_validation_msg: str = ""
     last_rendered_png: Path | None = None
+    pending_redefine_prompt: str | None = None
+    pending_redefine_plan: list[str] = field(default_factory=list)
     history: list[str] = field(default_factory=list)

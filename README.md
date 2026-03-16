@@ -188,6 +188,9 @@ Inside `archsmith_cli.py`, use short commands:
 - `:validate` validate current file
 - `:render` validate + render current file
 - `:show` quick summary (service and edge counts)
+- `:understand [file]` parse an existing draw.io and show detected components/flows
+- `:redefine <request>` preview a redefine plan without mutating XML
+- `:apply` apply the last redefine plan
 - `:icon <aws4|none>` choose icon rendering mode for future updates
 - `:quit` exit
 
@@ -247,6 +250,7 @@ Outputs land in `architecture/rendered/`.
 ## Notes
 
 - Primary output is XML (`architecture/raw/*.drawio`).
+- Existing compressed draw.io files can be inspected and redefined from the CLI.
 - `architecture/` runtime artifacts are ignored by default in Git (except `.gitkeep`).
 - Agent operating workflow and incremental multi-account process are documented in `INSTRUCTIONS.md`.
 - Image-to-diagram input is intentionally excluded for now.

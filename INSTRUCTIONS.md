@@ -43,6 +43,9 @@ Short commands available inside interactive mode:
 - `:validate`
 - `:render`
 - `:show`
+- `:understand [file]`
+- `:redefine <request>`
+- `:apply`
 - `:icon <aws4|none>`
 - `:quit`
 
@@ -108,6 +111,7 @@ Interactive behavior:
 - `:start` is the expected first action in a fresh interactive session.
 - If there is no active file, the first natural language prompt creates one.
 - If there is an active file, natural language input applies deltas (add/remove/connect).
+- `:redefine <request>` previews a delta plan; `:apply` executes the pending plan.
 - Validation is mandatory before render.
 
 ## Quality gate

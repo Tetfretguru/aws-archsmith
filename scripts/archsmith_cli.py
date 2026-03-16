@@ -12,9 +12,11 @@ from diagram_ops import (
     ensure_dirs,
     generate_new,
     now_name,
+    plan_prompt_delta,
     render_file,
     summarize,
     startup_check,
+    understand_diagram,
     validate_path,
 )
 from session_state import SessionState
@@ -29,6 +31,9 @@ HELP_TEXT = """Available commands:
   :validate             Validate active file
   :render               Render active file to PNG
   :show                 Show quick diagram summary
+  :understand [file]    Parse active/existing drawio and explain structure
+  :redefine <request>   Build redefine plan without mutating XML
+  :apply                Apply last redefine plan
   :icon <aws4|none>     Set icon mode for future updates
   :quit                 Exit interactive session
 
@@ -82,6 +87,71 @@ def _run_startup(state: SessionState) -> None:
         print("No active file yet. Use :new <name> or type your first prompt.")
 
 
+def _print_understanding(path: Path) -> None:
+    details = understand_diagram(path)
+    print(f"File: {details['file']}")
+    print(f"Format: {details['format']}")
+    print(f"Services: {details['services_count']} | Edges: {details['edges_count']}")
+
+    boundaries = details.get("boundaries", [])
+    boundary_items = boundaries if isinstance(boundaries, list) else []
+    if boundary_items:
+        print("Boundaries:")
+        for item in boundary_items:
+            print(f"- {item}")
+
+    recognized = details.get("recognized_services", [])
+    recognized_items = recognized if isinstance(recognized, list) else []
+    if recognized_items:
+        print("Recognized services:")
+        for item in recognized_items:
+            print(f"- {item}")
+
+    unknown = details.get("unknown_components", [])
+    unknown_items = unknown if isinstance(unknown, list) else []
+    if unknown_items:
+        print("Unknown components:")
+        for item in unknown_items:
+            print(f"- {item}")
+
+    flows = details.get("inferred_flows", [])
+    flow_items = flows if isinstance(flows, list) else []
+    if flow_items:
+        print("Inferred flows:")
+        for flow in flow_items:
+            print(f"- {flow}")
+
+
+def _plan_redefine(state: SessionState, prompt: str) -> None:
+    if state.active_file is None or not state.active_file.exists():
+        print("No active file. Use :new/:use first or create one with a prompt.")
+        return
+    plan = plan_prompt_delta(state.active_file, prompt, icon_set=state.icon_set)
+    state.pending_redefine_prompt = prompt
+    state.pending_redefine_plan = plan
+    print("Redefine plan:")
+    for change in plan:
+        print(f"- {change}")
+    print("Run :apply to execute this plan.")
+
+
+def _apply_pending_redefine(state: SessionState) -> None:
+    if not state.pending_redefine_prompt:
+        print("No pending redefine plan. Use :redefine <request> first.")
+        return
+    if state.active_file is None:
+        print("No active file.")
+        return
+
+    changes = apply_prompt_delta(state.active_file, state.pending_redefine_prompt, icon_set=state.icon_set)
+    print("Applied changes:")
+    for change in changes:
+        print(f"- {change}")
+    state.pending_redefine_prompt = None
+    state.pending_redefine_plan = []
+    _run_validate_and_render(state)
+
+
 def _create_from_prompt(state: SessionState, prompt: str, preset_name: str | None = None) -> None:
     name = preset_name or (state.active_file.stem if state.active_file else now_name("arch"))
     path = generate_new(name=name, prompt=prompt, icon_set=state.icon_set)
@@ -98,6 +168,8 @@ def _update_from_prompt(state: SessionState, prompt: str) -> None:
     print("Changes:")
     for change in changes:
         print(f"- {change}")
+    state.pending_redefine_prompt = None
+    state.pending_redefine_plan = []
     _run_validate_and_render(state)
 
 
@@ -139,6 +211,8 @@ def run_repl(initial_file: Path | None = None, auto_start: bool = False) -> int:
             elif cmd == ":new":
                 name = arg or now_name("arch")
                 state.active_file = _resolve_user_file(name)
+                state.pending_redefine_prompt = None
+                state.pending_redefine_plan = []
                 print(f"Active file set to: {state.active_file}")
                 print("Now describe your architecture in natural language.")
             elif cmd == ":use":
@@ -150,6 +224,8 @@ def run_repl(initial_file: Path | None = None, auto_start: bool = False) -> int:
                     print(f"File not found: {path}")
                     continue
                 state.active_file = path
+                state.pending_redefine_prompt = None
+                state.pending_redefine_plan = []
                 print(f"Active file: {state.active_file}")
             elif cmd == ":status":
                 print(f"active_file={state.active_file}")
@@ -159,6 +235,8 @@ def run_repl(initial_file: Path | None = None, auto_start: bool = False) -> int:
                     print(state.last_validation_msg)
                 if state.last_rendered_png:
                     print(f"last_png={state.last_rendered_png}")
+                if state.pending_redefine_prompt:
+                    print("pending_redefine=yes")
             elif cmd == ":validate":
                 if state.active_file is None:
                     print("No active file.")
@@ -177,6 +255,24 @@ def run_repl(initial_file: Path | None = None, auto_start: bool = False) -> int:
                     print("No active file.")
                     continue
                 print(summarize(state.active_file))
+            elif cmd == ":understand":
+                target = state.active_file
+                if arg:
+                    target = _resolve_user_file(arg)
+                if target is None:
+                    print("No active file.")
+                    continue
+                if not target.exists():
+                    print(f"File not found: {target}")
+                    continue
+                _print_understanding(target)
+            elif cmd == ":redefine":
+                if not arg:
+                    print("Usage: :redefine <request>")
+                    continue
+                _plan_redefine(state, arg)
+            elif cmd == ":apply":
+                _apply_pending_redefine(state)
             elif cmd == ":icon":
                 if arg not in {"aws4", "none"}:
                     print("Usage: :icon <aws4|none>")
