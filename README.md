@@ -1,281 +1,605 @@
-# aws-archsmith
+<p align="center">
+  <img src="https://img.shields.io/badge/Draw.io_XML-Source_of_Truth-blue?style=for-the-badge" alt="Draw.io XML" />
+  <img src="https://img.shields.io/badge/AWS-35%2B_Services-FF9900?style=for-the-badge&logo=amazon-aws&logoColor=white" alt="AWS Services" />
+  <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
+  <img src="https://img.shields.io/badge/FastAPI-API--First-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/Docker-Containerized-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
+</p>
 
-Local-first AWS architecture automation with Draw.io XML as the primary source of truth.
+<p align="center">
+  <img src="https://img.shields.io/badge/Developed_with-OpenCode_in_Terminal-000000?style=for-the-badge" alt="Developed with OpenCode" />
+</p>
 
-This repository is designed so the AI agent does the implementation work while you drive intent with plain language.
+# 🏗️ aws-archsmith
 
-## Agent quick start (`:start`)
+**AI-first AWS architecture automation where Draw.io XML is the single source of truth.**
 
-1. Open OpenCode, Claude Code, or Codex in this repo.
-2. Type `:start`.
-3. After the ready message, describe your task in natural language.
+Describe your infrastructure in plain language. Archsmith generates deterministic Draw.io diagrams with official AWS4 icons, validates structure and layout, and renders publication-ready PNGs — all from the terminal.
 
-Startup contract and expected behavior are defined in `START.md`.
+> This entire project — every line of code, every configuration file, every agent definition — was developed exclusively with [OpenCode](https://opencode.ai) in the terminal. No IDE. No GUI. Pure CLI-driven AI development.
 
-## What it does
+---
 
-- Keeps architecture definitions in uncompressed Draw.io XML (`.drawio`).
-- Generates deterministic starter diagrams from plain prompts.
-- Supports AWS icons via Draw.io AWS4 shapes (`mxgraph.aws4.*`) by default.
-- Validates diagram structure, overlap, and orthogonal edge routing.
-- Renders PNG/SVG locally via Docker (CI intentionally on hold).
+## 📑 Table of Contents
 
-## Diagram mechanics (boxes and arrows)
+- [Features](#-features)
+- [Architecture Overview](#-architecture-overview)
+- [Prerequisites](#-prerequisites)
+- [Installation](#-installation)
+- [Quick Start](#-quick-start)
+- [Three Modes of Operation](#-three-modes-of-operation)
+- [Supported AWS Services](#-supported-aws-services-35)
+- [Interactive CLI Commands](#-interactive-cli-commands)
+- [API Reference](#-api-reference)
+- [OpenCode Agent Mode](#-opencode-agent-mode)
+- [Diagram Mechanics](#-diagram-mechanics)
+- [Repository Layout](#-repository-layout)
+- [QA & Validation](#-qa--validation)
+- [Environment Variables](#-environment-variables)
+- [Contributing](#-contributing)
+- [License](#-license)
 
-- Boxes are Draw.io `mxCell` vertices with explicit geometry (`x`, `y`, `width`, `height`).
-- Boundaries are also boxes: VPC (dashed) containing Public/Private Subnet containers.
-- Arrows are Draw.io edge `mxCell` elements with orthogonal routing and arrowheads.
-- The generator groups services by tier and auto-connects flows:
-  - ingress chain -> compute/messaging -> data
-  - security and observability can bridge into compute
-- Validation enforces orthogonal arrows and catches sibling overlaps before render.
+---
 
-## Supported AWS services (keyword driven)
+## ✨ Features
 
-Ingress/network edge:
+| Capability | Description |
+|---|---|
+| 🗣️ **Natural language to diagrams** | Describe AWS architectures in plain English; Archsmith generates valid Draw.io XML |
+| 🎨 **Official AWS4 icons** | Uses `mxgraph.aws4.*` stencils matching the official Draw.io AWS palette |
+| 🔄 **Incremental updates** | Add, remove, reconnect services on existing diagrams without replacing them |
+| ✅ **Validation-first** | Structure, overlap, and orthogonal edge checks run before every render |
+| 🐳 **Docker rendering** | PNG/SVG export via headless Draw.io Desktop container |
+| 🌐 **API-first architecture** | Full FastAPI server with session management, SQLite/Postgres persistence |
+| 🤖 **OpenCode agent integration** | Custom agents, skills, tools, and slash commands for terminal-native workflow |
+| 📦 **Compressed file support** | Read and redefine both uncompressed and compressed `.drawio` files |
+| 🏗️ **Dynamic boundary detection** | Automatic VPC/subnet/account boundary classification using style + geometry heuristics |
 
-- Route 53, CloudFront, WAF, Application Load Balancer, API Gateway, Internet Gateway
+---
 
-Compute/orchestration:
-
-- ECS, Fargate, EKS, EC2, Lambda, AWS Batch, Step Functions
-
-Data/storage/search:
-
-- RDS, Aurora, PostgreSQL, MySQL, DynamoDB, S3, ElastiCache/Redis, OpenSearch, Redshift, EFS
-
-Messaging/integration:
-
-- SQS, SNS, Kinesis, MSK, Amazon MQ, EventBridge
-
-Security/identity/keys:
-
-- IAM, KMS, Secrets Manager, Cognito, Shield
-
-Observability:
-
-- CloudWatch, X-Ray, CloudTrail
-
-## Repository layout
+## 🏛️ Architecture Overview
 
 ```
-.
-├── architecture/
-│   ├── raw/         # source .drawio XML
-│   └── rendered/    # generated PNG/SVG
-├── docker/
-│   └── compose.yml  # local rendering/validation containers
-├── scripts/
-│   ├── generate_xml.py
-│   ├── render.sh
-│   └── validate_drawio.py
-├── ARCHITECT_GUIDELINES.md
-├── Makefile
-└── .gitignore
+┌─────────────────────────────────────────────────────────────────┐
+│                      User / AI Agent                            │
+│  (Natural language: "Add API Gateway, Lambda, and DynamoDB")    │
+└──────────────┬──────────────────────────┬───────────────────────┘
+               │                          │
+        ┌──────▼──────┐          ┌────────▼────────┐
+        │  CLI Mode   │          │   API Mode      │
+        │  archsmith  │          │   FastAPI:8000   │
+        └──────┬──────┘          └────────┬────────┘
+               │                          │
+        ┌──────▼──────────────────────────▼───────┐
+        │          Core Engine (Python)            │
+        │  generate_xml.py  diagram_ops.py        │
+        │  validate_drawio.py  session_state.py   │
+        └──────┬──────────────────────────┬───────┘
+               │                          │
+        ┌──────▼──────┐          ┌────────▼────────┐
+        │ .drawio XML │          │  SQLite/Postgres │
+        │  (raw/)     │          │  (sessions, ops) │
+        └──────┬──────┘          └─────────────────┘
+               │
+        ┌──────▼──────┐
+        │  Docker      │
+        │  Renderer    │
+        │  (PNG/SVG)   │
+        └─────────────┘
 ```
 
-## Prerequisites
+---
 
-- Docker
-- Docker Compose plugin (`docker compose`)
-- Python 3.10+ (only for local generator/validator convenience)
+## 📋 Prerequisites
 
-## Quick start
+| Dependency | Required | Notes |
+|---|---|---|
+| **Python** 3.10+ | Yes | Core engine and CLI |
+| **Docker** | Yes | API container and PNG rendering |
+| **Docker Compose** plugin | Yes | `docker compose` (v2 syntax) |
+| **Poetry** 1.8+ | Recommended | Dependency management (or use Docker) |
+| **make** | Optional | Shortcut targets for common workflows |
+| **OpenCode** | Optional | For agent mode with custom tools/commands |
 
-0. Start interactive mode (recommended):
+---
+
+## 📥 Installation
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Tetfretguru/aws-archsmith.git
+cd aws-archsmith
+```
+
+### 2. Install Python dependencies
+
+**With Poetry (recommended):**
+
+```bash
+pip install poetry
+poetry install
+```
+
+**Without Poetry (pip):**
+
+```bash
+pip install fastapi "uvicorn[standard]" sqlalchemy "pydantic>=2.9" "psycopg[binary]"
+```
+
+### 3. Initialize workspace directories
+
+```bash
+make init
+```
+
+Or manually:
+
+```bash
+mkdir -p architecture/raw architecture/rendered architecture/specs
+```
+
+### 4. Verify the setup
+
+```bash
+python3 scripts/validate_drawio.py architecture/raw  # should pass (empty dir)
+docker compose version                                # confirm Docker Compose v2
+```
+
+---
+
+## 🚀 Quick Start
+
+### Fastest path: Interactive CLI
 
 ```bash
 ./archsmith
 ```
 
-Then run:
-
 ```text
-:start
+archsmith> :start
+  ✓ python3 found
+  ✓ docker found
+  ✓ docker compose found
+  ✓ directories exist
+  Ready. Use :new <name> or type a natural language prompt.
+
+archsmith> User sends POST to API Gateway, Lambda processes it, stores in DynamoDB
+  → Generated: architecture/raw/api-gateway-lambda-dynamodb.drawio
+  → Validation: passed
+  → Rendered: architecture/rendered/api-gateway-lambda-dynamodb.png
 ```
 
-or:
-
-```bash
-python3 scripts/archsmith_cli.py
-```
-
-If `make` is available:
-
-```bash
-make chat
-```
-
-or with automatic startup checks at launch:
-
-```bash
-make start
-```
-
-1. Generate XML from an instruction prompt:
+### Or with Make
 
 ```bash
 make generate NAME=payments PROMPT="public ALB, ECS service, RDS postgres"
-```
-
-Without `make`:
-
-```bash
-python3 scripts/generate_xml.py --name "payments" --prompt "public ALB, ECS service, RDS postgres"
-```
-
-Use classic boxes instead of AWS icons:
-
-```bash
-python3 scripts/generate_xml.py --name "payments" --prompt "public ALB, ECS service, RDS postgres" --icon-set none
-```
-
-2. Validate all `.drawio` files:
-
-```bash
 make validate
-```
-
-3. Render PNG (after validation) using Docker:
-
-```bash
 make render
 ```
 
-Without `make`:
-
-```bash
-python3 scripts/validate_drawio.py architecture/raw && docker compose -f docker/compose.yml run --rm renderer
-```
-
-Optional (render PNG + SVG):
-
-```bash
-make render-all
-```
-
-4. Full demo flow:
+### Full demo (generate + validate + render)
 
 ```bash
 make demo
 ```
 
-## Iterative multi-account workflow
+---
 
-Use this loop for conversational architecture design:
+## 🔀 Three Modes of Operation
 
-1. Generate a base diagram from the prompt.
-2. Edit the same XML file with incremental deltas (do not replace everything).
-3. Re-run validation.
-4. Render and share XML + PNG paths.
+Archsmith supports three complementary interaction modes:
 
-Recommended commands for a single target file:
+### 1. 🖥️ Interactive CLI
 
-```bash
-python3 scripts/validate_drawio.py architecture/raw/multi-account-etl.drawio
-docker compose -f docker/compose.yml run --rm renderer architecture/raw architecture/rendered png
-```
-
-## Interactive commands
-
-Inside `archsmith_cli.py`, use short commands:
-
-- `:help` show capabilities and command reference
-- `:start` run startup checks and initialize the session
-- `:new <name>` set a new working file
-- `:use <file>` switch active file
-- `:status` show active file and last validation/render state
-- `:validate` validate current file
-- `:render` validate + render current file
-- `:show` quick summary (service and edge counts)
-- `:understand [file]` parse an existing draw.io and show detected components/flows
-- `:redefine <request>` preview a redefine plan without mutating XML
-- `:apply` apply the last redefine plan
-- `:icon <aws4|none>` choose icon rendering mode for future updates
-- `:quit` exit
-
-Any line that does not start with `:` is interpreted as a natural language change request.
-
-## QA smoke checks
-
-Run the automated smoke suite:
+The primary local development interface. Conversational, incremental, session-aware.
 
 ```bash
-python3 scripts/qa_smoke.py
+./archsmith          # or: python3 scripts/archsmith_cli.py
 ```
 
-If `make` is installed:
-
-```bash
-make qa-smoke
+```text
+archsmith> :start
+archsmith> public ALB, ECS Fargate service, RDS PostgreSQL
+archsmith> add ElastiCache Redis between ECS and RDS
+archsmith> :validate
+archsmith> :render
 ```
 
-## User guide
+Key features:
+- `:start` initializes and verifies the environment
+- Natural language creates or updates diagrams
+- `:understand` inspects existing (including compressed) `.drawio` files
+- `:redefine` previews changes; `:apply` commits them
 
-For interactive examples and session patterns, see `docs/USER_GUIDE.md`.
+### 2. 🌐 API Mode (FastAPI)
 
-## API mode (XML-only)
+Headless HTTP interface for programmatic and agent-driven workflows.
 
-Run API container with SQLite:
+**Start with SQLite (default):**
 
 ```bash
 make api-up
+# or: docker compose -f docker/compose.api.yml up -d --build api
 ```
 
-Or directly:
-
-```bash
-docker compose -f docker/compose.api.yml up -d --build api
-```
-
-Run API with Postgres profile:
+**Start with PostgreSQL:**
 
 ```bash
 make api-up-postgres
+# or: docker compose -f docker/compose.api.yml --profile postgres up -d --build api-postgres postgres
 ```
 
-Smoke test:
+**Verify:**
+
+```bash
+curl http://127.0.0.1:8000/health
+# {"status": "ok", "database": "sqlite"}
+```
+
+**Smoke test:**
 
 ```bash
 make api-smoke
 ```
 
-API reference and endpoint examples:
+### 3. 🤖 OpenCode Agent Mode
 
-- `docs/API.md`
-- `examples/api.http`
+Full AI-agent integration with custom tools, skills, slash commands, and agents — designed for [OpenCode](https://opencode.ai) terminal sessions.
 
-Outputs land in `architecture/rendered/`.
+```text
+/arch-bootstrap              # Start Docker + API + create session
+/arch-understand             # Inspect current diagram
+/arch-redefine-plan Add S3   # Preview change plan
+/arch-redefine-apply Add S3  # Apply changes
+```
 
-## OpenCode agent mode
+See the [OpenCode Agent Mode](#-opencode-agent-mode) section for complete details.
 
-This repo now includes project-local OpenCode agent configuration:
+---
 
-- `opencode.json` project config and permissions
-- `AGENTS.md` architecture rules
-- `.opencode/agents/` custom primary/subagents
-- `.opencode/skills/` reusable architecture workflows
-- `.opencode/tools/` API-backed custom tools
-- `.opencode/commands/` slash commands for understand/redefine/apply
+## ☁️ Supported AWS Services (35+)
 
-Recommended flow in OpenCode:
+Archsmith recognizes these services by keyword and maps them to official Draw.io AWS4 icon stencils:
 
-1. Run `/arch-bootstrap` (default `sqlite`; optional `/arch-bootstrap postgres`).
-2. Run `/arch-start` only if you need to explicitly resume a known session.
-3. Run `/arch-understand`.
-4. Run `/arch-redefine-plan <change request>`.
-5. Run `/arch-redefine-apply <same request>`.
+### 🌐 Ingress / Network Edge
+`Route 53` · `CloudFront` · `WAF` · `Application Load Balancer` · `API Gateway` · `Internet Gateway`
 
-Redefine supports both modes:
+### ⚙️ Compute / Orchestration
+`ECS` · `Fargate` · `EKS` · `EC2` · `Lambda` · `AWS Batch` · `Step Functions`
 
-- Existing-diagram mode: use active session file or pass `file_path`.
-- Create-from-scratch mode: run plan/apply without active file and provide `file_name` in tool args when needed.
+### 💾 Data / Storage / Search
+`RDS` · `Aurora` · `PostgreSQL` · `MySQL` · `DynamoDB` · `S3` · `ElastiCache / Redis` · `OpenSearch` · `Redshift` · `EFS`
 
-## Notes
+### 📨 Messaging / Integration
+`SQS` · `SNS` · `Kinesis` · `MSK` · `Amazon MQ` · `EventBridge`
 
-- Primary output is XML (`architecture/raw/*.drawio`).
-- Existing compressed draw.io files can be inspected and redefined from the CLI.
-- `architecture/` runtime artifacts are ignored by default in Git (except `.gitkeep`).
-- Agent operating workflow and incremental multi-account process are documented in `INSTRUCTIONS.md`.
-- Image-to-diagram input is intentionally excluded for now.
-- CI workflow is intentionally postponed until local flow is stable.
+### 🔐 Security / Identity / Keys
+`IAM` · `KMS` · `Secrets Manager` · `Cognito` · `Shield`
+
+### 📊 Observability
+`CloudWatch` · `X-Ray` · `CloudTrail`
+
+> Icon rendering uses the `mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.<key>` pattern with 78x78 geometry, matching Draw.io's official AWS4 palette. Use `:icon none` for classic boxes.
+
+---
+
+## 💻 Interactive CLI Commands
+
+| Command | Description |
+|---|---|
+| `:start` | Run startup checks and initialize session |
+| `:help` | Show all available commands |
+| `:new <name>` | Create a new working diagram file |
+| `:use <file>` | Switch to an existing `.drawio` file |
+| `:status` | Show active file and last validation/render state |
+| `:validate` | Validate the active file |
+| `:render` | Validate + render active file to PNG |
+| `:show` | Quick summary (service and edge counts) |
+| `:understand [file]` | Parse existing `.drawio` and show detected structure |
+| `:redefine <request>` | Preview a redefine plan without mutating XML |
+| `:apply` | Apply the last previewed redefine plan |
+| `:icon <aws4\|none>` | Switch between AWS4 icons and classic boxes |
+| `:quit` | Exit the CLI |
+
+Any text that does not start with `:` is interpreted as a **natural language architecture request**.
+
+---
+
+## 🌐 API Reference
+
+Base URL: `http://127.0.0.1:8000`
+
+### Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/health` | Health check (includes DB status) |
+| `POST` | `/v1/start` | Bootstrap session, run startup checks |
+| `POST` | `/v1/chat` | Natural language create/update diagram |
+| `POST` | `/v1/diagram/understand` | Inspect active diagram structure |
+| `POST` | `/v1/diagram/redefine/plan` | Preview incremental changes (no mutation) |
+| `POST` | `/v1/diagram/redefine/apply` | Apply incremental changes to XML |
+| `POST` | `/v1/validate` | Validate a `.drawio` file or inline XML |
+| `GET` | `/v1/file` | Retrieve XML content by session |
+| `GET` | `/v1/session/{session_id}` | Session details and history |
+
+### Core Flow
+
+```
+POST /v1/start
+  → session_id
+
+POST /v1/chat  { session_id, message: "ALB, ECS, RDS Postgres" }
+  → xml_path, xml_content, validation, changed[]
+
+POST /v1/chat  { session_id, message: "add ElastiCache between ECS and RDS" }
+  → updated xml_path, xml_content, validation, changed[]
+```
+
+### Redefine Flow (Existing Diagrams)
+
+```
+POST /v1/diagram/understand    { session_id }
+  → boundaries, services, unknowns, flows
+
+POST /v1/diagram/redefine/plan  { session_id, message: "add EventBridge" }
+  → proposed deltas (no mutation)
+
+POST /v1/diagram/redefine/apply { session_id, message: "add EventBridge" }
+  → xml_path, validation, applied changes
+```
+
+### Create-from-Scratch Mode
+
+When no active file exists, `redefine/plan` and `redefine/apply` generate a new diagram:
+
+```
+POST /v1/diagram/redefine/apply {
+  session_id: "...",
+  message: "API Gateway, Lambda, DynamoDB",
+  file_name: "serverless-api"
+}
+```
+
+Full request/response examples: [`examples/api.http`](examples/api.http) | API docs: [`docs/API.md`](docs/API.md)
+
+---
+
+## 🤖 OpenCode Agent Mode
+
+Archsmith ships with a complete [OpenCode](https://opencode.ai) agent setup for terminal-native architecture workflows.
+
+### Components
+
+| Type | Files | Purpose |
+|---|---|---|
+| **Agents** | `archsmith-plan`, `archsmith-build`, `archsmith-qa` | Planning (read-only), implementation, and QA subagent |
+| **Tools** | 6 TypeScript tools in `.opencode/tools/` | API-backed wrappers: bootstrap, start, understand, plan, apply, validate |
+| **Skills** | `drawio-understand`, `drawio-redefine`, `drawio-validate` | Reusable workflow recipes for diagram operations |
+| **Commands** | `/arch-bootstrap`, `/arch-start`, `/arch-understand`, `/arch-redefine-plan`, `/arch-redefine-apply` | Slash commands for quick invocation |
+| **Config** | `opencode.json`, `AGENTS.md` | Project-level rules, permissions, instruction loading |
+
+### Recommended Workflow
+
+```text
+1.  /arch-bootstrap              # Start Docker + API + session (default: sqlite)
+2.  /arch-bootstrap postgres     # Or start with PostgreSQL
+3.  /arch-understand             # Inspect current diagram state
+4.  /arch-redefine-plan <prompt> # Preview proposed changes
+5.  /arch-redefine-apply <prompt># Apply changes, auto-validates
+```
+
+### Agent Architecture
+
+- **archsmith-plan** (default agent) — Read-only planning. Proposes deltas without mutations. Cannot edit files.
+- **archsmith-build** — Full implementation agent. Understands, plans, applies, and validates through API tools.
+- **archsmith-qa** — QA subagent. Reviews XML validity, orthogonal edges, overlap, and boundary semantics.
+
+### Tool Design
+
+All 6 OpenCode tools communicate exclusively through the **FastAPI HTTP API** — no direct Python calls. Each tool:
+
+1. Accepts Zod-validated parameters
+2. Calls the corresponding API endpoint
+3. Returns `JSON.stringify()` output (required by OpenCode runtime)
+
+```
+archsmith_bootstrap.ts      → docker compose up + /health + /v1/start
+archsmith_start_session.ts  → POST /v1/start
+archsmith_understand_diagram.ts → POST /v1/diagram/understand
+archsmith_redefine_plan.ts  → POST /v1/diagram/redefine/plan
+archsmith_redefine_apply.ts → POST /v1/diagram/redefine/apply
+archsmith_validate.ts       → POST /v1/validate
+```
+
+---
+
+## 📐 Diagram Mechanics
+
+### XML Structure
+
+Archsmith generates valid uncompressed Draw.io `mxGraphModel` XML:
+
+- **Vertices**: `mxCell` elements with explicit `mxGeometry` (`x`, `y`, `width`, `height`)
+- **Edges**: `mxCell` elements with `edgeStyle=orthogonalEdgeStyle` and arrowhead markers
+- **Boundaries**: VPC (dashed), public/private subnets as container elements
+- **Root cells**: `mxCell` ids `0` (root) and `1` (default parent) are always present
+
+### Layout Strategy
+
+Services are grouped by architectural tier and auto-connected:
+
+```
+Ingress → Compute/Messaging → Data
+Security and Observability bridge into Compute
+```
+
+- Minimum spacing: 40px between sibling nodes
+- Public ingress: positioned left/top
+- Data services: positioned right/bottom
+- VPC/subnet boundaries: auto-detected via style tokens and geometry heuristics
+
+### Validation Rules
+
+Every mutation triggers validation before rendering:
+
+1. **Structure** — Valid XML root, required base cells, geometry on all vertices
+2. **Layout** — No overlapping sibling nodes (40px minimum gap)
+3. **Edges** — All connectors use orthogonal routing (`edgeStyle=orthogonalEdgeStyle`)
+
+---
+
+## 📂 Repository Layout
+
+```
+aws-archsmith/
+├── 📄 archsmith                  # Shell wrapper → archsmith_cli.py
+├── 📄 opencode.json              # OpenCode project config & permissions
+├── 📄 AGENTS.md                  # Agent behavioral rules
+├── 📄 Makefile                   # Make targets for all workflows
+├── 📄 pyproject.toml             # Poetry project definition
+│
+├── 📂 scripts/
+│   ├── archsmith_cli.py          # Interactive AI-first CLI (303 lines)
+│   ├── opencode_api_server.py    # FastAPI server (304 lines)
+│   ├── generate_xml.py           # Deterministic Draw.io XML generator
+│   ├── diagram_ops.py            # Understand, plan, apply operations
+│   ├── validate_drawio.py        # XML structure/layout validator
+│   ├── session_state.py          # CLI session state dataclass
+│   ├── render.sh                 # Docker-based PNG/SVG export
+│   ├── api_smoke.py              # API smoke test
+│   ├── qa_smoke.py               # QA automation suite
+│   └── api/
+│       ├── schemas.py            # Pydantic request/response models
+│       ├── service.py            # Business logic layer
+│       └── db.py                 # SQLAlchemy models & DB helpers
+│
+├── 📂 docker/
+│   ├── Dockerfile.api            # Python 3.10 slim + Poetry API image
+│   ├── compose.api.yml           # API service (SQLite + Postgres profiles)
+│   └── compose.yml               # Renderer (drawio-desktop-headless)
+│
+├── 📂 architecture/
+│   ├── raw/                      # Source .drawio XML files
+│   ├── rendered/                 # Generated PNG/SVG outputs
+│   └── specs/                    # QA test fixtures and reports
+│
+├── 📂 .opencode/
+│   ├── agents/                   # archsmith-plan, archsmith-build, archsmith-qa
+│   ├── tools/                    # 6 API-backed TypeScript tools
+│   ├── skills/                   # drawio-understand, drawio-redefine, drawio-validate
+│   └── commands/                 # Slash commands for OpenCode
+│
+├── 📂 docs/
+│   ├── API.md                    # API endpoint reference
+│   ├── USER_GUIDE.md             # Interactive CLI user guide
+│   └── API_TEST_RUN.md           # Manual API test run record
+│
+└── 📂 examples/
+    └── api.http                  # HTTP request samples
+```
+
+---
+
+## ✅ QA & Validation
+
+### Automated Smoke Suite
+
+```bash
+make qa-smoke
+# or: python3 scripts/qa_smoke.py
+```
+
+The QA suite covers 12 test cases:
+
+| ID | Test |
+|---|---|
+| TP-01 | Preflight environment checks |
+| TP-02 | Directory initialization |
+| TP-03 | End-to-end with Make |
+| TP-04 | End-to-end without Make |
+| TP-05 | XML structure validation |
+| TP-06 | Base cell ID requirements |
+| TP-07 | Geometry validation |
+| TP-08 | Overlap detection |
+| TP-09 | Orthogonal edge enforcement |
+| TP-10 | Render gate (validation before render) |
+| TP-11 | Iterative incremental updates |
+| TP-12 | Docker fallback handling |
+
+### API Smoke Test
+
+```bash
+make api-smoke
+# or: python3 scripts/api_smoke.py --base-url "http://127.0.0.1:8000"
+```
+
+### Manual Validation
+
+```bash
+# Validate all files
+make validate
+
+# Validate a single file
+python3 scripts/validate_drawio.py architecture/raw/my-diagram.drawio
+```
+
+---
+
+## ⚙️ Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `ARCHSMITH_DB_URL` | `sqlite:////data/archsmith.db` | Database connection string (SQLite or PostgreSQL) |
+| `ARCHSMITH_API_URL` | `http://127.0.0.1:8000` | API base URL (used by OpenCode tools) |
+
+These are set automatically in Docker containers. Override only for custom deployments.
+
+---
+
+## 🔧 Make Targets
+
+```
+make help              Show all targets
+make init              Create workspace directories
+make generate          Generate .drawio XML from prompt
+make validate          Validate all .drawio files
+make render            Validate + render PNG via Docker
+make render-all        Validate + render PNG + SVG
+make demo              Generate + validate + render
+make start             Interactive CLI with startup checks
+make chat              Interactive natural language mode
+make api-up            Start API container (SQLite)
+make api-up-postgres   Start API container (PostgreSQL)
+make api-down          Stop API container
+make api-smoke         Run API smoke test
+make qa-smoke          Run QA automation suite
+make clean             Remove rendered outputs
+```
+
+---
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch from `main`
+3. Ensure `make validate` and `make qa-smoke` pass
+4. Submit a pull request with a clear description of changes
+
+Development guidelines are defined in:
+- `ARCHITECT_GUIDELINES.md` — XML constraints and design rules
+- `INSTRUCTIONS.md` — Required workflow (validation before rendering)
+- `AGENTS.md` — Agent behavioral rules
+
+---
+
+## 📄 License
+
+This project is provided as-is for internal and educational use.
+
+---
+
+<p align="center">
+  <sub>Built entirely with <a href="https://opencode.ai">OpenCode</a> in the terminal — no IDE, no GUI, pure CLI-driven AI development.</sub>
+</p>
