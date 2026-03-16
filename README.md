@@ -247,6 +247,25 @@ API reference and endpoint examples:
 
 Outputs land in `architecture/rendered/`.
 
+## OpenCode agent mode
+
+This repo now includes project-local OpenCode agent configuration:
+
+- `opencode.json` project config and permissions
+- `AGENTS.md` architecture rules
+- `.opencode/agents/` custom primary/subagents
+- `.opencode/skills/` reusable architecture workflows
+- `.opencode/tools/` API-backed custom tools
+- `.opencode/commands/` slash commands for understand/redefine/apply
+
+Recommended flow in OpenCode:
+
+1. Start API server (`make api-up` or compose command).
+2. Run `/arch-start` to initialize/resume session.
+3. Run `/arch-understand`.
+4. Run `/arch-redefine-plan <change request>`.
+5. Run `/arch-redefine-apply <same request>`.
+
 ## Notes
 
 - Primary output is XML (`architecture/raw/*.drawio`).

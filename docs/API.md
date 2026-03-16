@@ -28,6 +28,9 @@ docker compose -f docker/compose.api.yml --profile postgres up -d --build api-po
 - `GET /health`
 - `POST /v1/start`
 - `POST /v1/chat`
+- `POST /v1/diagram/understand`
+- `POST /v1/diagram/redefine/plan`
+- `POST /v1/diagram/redefine/apply`
 - `POST /v1/validate`
 - `GET /v1/file`
 - `GET /v1/session/{session_id}`
@@ -38,6 +41,12 @@ docker compose -f docker/compose.api.yml --profile postgres up -d --build api-po
 2. `POST /v1/chat` with natural language prompt
 3. Repeat `POST /v1/chat` for incremental deltas
 4. Optional: `GET /v1/file` or `POST /v1/validate`
+
+Redefine flow (existing diagram):
+
+1. `POST /v1/diagram/understand`
+2. `POST /v1/diagram/redefine/plan`
+3. `POST /v1/diagram/redefine/apply`
 
 ## Request and response examples
 
@@ -79,6 +88,32 @@ Validation only:
 ```json
 {
   "file_path": "pipeline-design.drawio"
+}
+```
+
+Understand existing diagram:
+
+```json
+{
+  "session_id": "<id>"
+}
+```
+
+Redefine plan:
+
+```json
+{
+  "session_id": "<id>",
+  "message": "add EventBridge and connect EventBridge -> ECS Service"
+}
+```
+
+Redefine apply:
+
+```json
+{
+  "session_id": "<id>",
+  "message": "add EventBridge and connect EventBridge -> ECS Service"
 }
 ```
 

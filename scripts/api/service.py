@@ -6,7 +6,17 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-from diagram_ops import RAW_DIR, apply_prompt_delta, ensure_dirs, generate_new, now_name, startup_check, validate_path
+from diagram_ops import (
+    RAW_DIR,
+    apply_prompt_delta,
+    ensure_dirs,
+    generate_new,
+    now_name,
+    plan_prompt_delta,
+    startup_check,
+    understand_diagram,
+    validate_path,
+)
 from generate_xml import slugify
 
 
@@ -53,3 +63,29 @@ def validate_inline_xml(xml_content: str) -> tuple[bool, str]:
 
 def read_xml(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def resolve_existing_file(*, session_active_file: str | None, file_path: str | None) -> Path:
+    candidate = resolve_raw_file(file_path) if file_path else (Path(session_active_file) if session_active_file else None)
+    if candidate is None:
+        raise FileNotFoundError("no active file; provide file_path or chat first")
+    if not candidate.exists():
+        raise FileNotFoundError(f"file not found: {candidate}")
+    return candidate
+
+
+def understand_existing(*, session_active_file: str | None, file_path: str | None) -> dict[str, object]:
+    path = resolve_existing_file(session_active_file=session_active_file, file_path=file_path)
+    return understand_diagram(path)
+
+
+def plan_redefine(*, message: str, session_active_file: str | None, file_path: str | None, icon_set: str) -> tuple[Path, list[str]]:
+    path = resolve_existing_file(session_active_file=session_active_file, file_path=file_path)
+    changes = plan_prompt_delta(path, message, icon_set=icon_set)
+    return path, changes
+
+
+def apply_redefine(*, message: str, session_active_file: str | None, file_path: str | None, icon_set: str) -> tuple[Path, list[str]]:
+    path = resolve_existing_file(session_active_file=session_active_file, file_path=file_path)
+    changes = apply_prompt_delta(path, message, icon_set=icon_set)
+    return path, changes

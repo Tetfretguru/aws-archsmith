@@ -31,6 +31,32 @@ Content-Type: application/json
 ### Get file by session
 GET http://127.0.0.1:8000/v1/file?session_id=<session_id>
 
+### Understand active diagram by session
+POST http://127.0.0.1:8000/v1/diagram/understand
+Content-Type: application/json
+
+{
+  "session_id": "<session_id>"
+}
+
+### Redefine plan (no mutation)
+POST http://127.0.0.1:8000/v1/diagram/redefine/plan
+Content-Type: application/json
+
+{
+  "session_id": "<session_id>",
+  "message": "add EventBridge and connect EventBridge -> ECS Service"
+}
+
+### Redefine apply (mutates XML)
+POST http://127.0.0.1:8000/v1/diagram/redefine/apply
+Content-Type: application/json
+
+{
+  "session_id": "<session_id>",
+  "message": "add EventBridge and connect EventBridge -> ECS Service"
+}
+
 ### Validate by file path
 POST http://127.0.0.1:8000/v1/validate
 Content-Type: application/json

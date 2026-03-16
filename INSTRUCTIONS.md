@@ -92,6 +92,9 @@ API endpoints:
 - `GET /health`
 - `POST /v1/start`
 - `POST /v1/chat`
+- `POST /v1/diagram/understand`
+- `POST /v1/diagram/redefine/plan`
+- `POST /v1/diagram/redefine/apply`
 - `POST /v1/validate`
 - `GET /v1/file`
 - `GET /v1/session/{session_id}`
