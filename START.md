@@ -2,6 +2,15 @@
 
 This repository is designed for AI-first interactive use.
 
+## OpenCode unified startup
+
+In OpenCode, start everything with one command:
+
+1. Open OpenCode in this repository.
+2. Run `/arch-bootstrap`.
+3. Wait for API health and session bootstrap response.
+4. Continue with `/arch-understand` and redefine commands.
+
 ## Universal startup flow
 
 1. Open OpenCode, Claude Code, or Codex in this repository.

@@ -227,18 +227,22 @@ def diagram_redefine_plan(payload: DiagramRedefinePlanRequest, db: Session = Dep
     active_file = session.active_file if session else None
 
     try:
-        path, planned = plan_redefine(
+        path, planned, materialized = plan_redefine(
             message=payload.message,
             session_active_file=active_file,
             file_path=payload.file_path,
+            file_name=payload.file_name,
             icon_set=icon_set,
         )
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
-    ok, msg = validate_path(path)
+    if materialized:
+        ok, msg = validate_path(path)
+    else:
+        ok, msg = True, f"Plan generated for new file {path.name}; validation will run on apply"
     if session:
-        touch_session(db, session, active_file=str(path), icon_set=icon_set)
+        touch_session(db, session, active_file=(str(path) if materialized else session.active_file), icon_set=icon_set)
         add_operation(db, session.id, kind="diagram_redefine_plan", status="success" if ok else "validation_failed", detail=msg)
 
     return DiagramRedefinePlanResponse(
@@ -261,6 +265,7 @@ def diagram_redefine_apply(payload: DiagramRedefineApplyRequest, db: Session = D
             message=payload.message,
             session_active_file=active_file,
             file_path=payload.file_path,
+            file_name=payload.file_name,
             icon_set=icon_set,
         )
     except FileNotFoundError as exc:

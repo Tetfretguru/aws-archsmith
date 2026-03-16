@@ -78,6 +78,7 @@ class DiagramRedefinePlanRequest(BaseModel):
     message: str = Field(min_length=1)
     session_id: str | None = None
     file_path: str | None = None
+    file_name: str | None = None
     icon_set: str | None = Field(default=None, pattern="^(aws4|none)$")
 
 
@@ -92,6 +93,7 @@ class DiagramRedefineApplyRequest(BaseModel):
     message: str = Field(min_length=1)
     session_id: str | None = None
     file_path: str | None = None
+    file_name: str | None = None
     icon_set: str | None = Field(default=None, pattern="^(aws4|none)$")
 
 

@@ -17,7 +17,7 @@ from diagram_ops import (
     understand_diagram,
     validate_path,
 )
-from generate_xml import slugify
+from generate_xml import parse_services, slugify
 
 
 def run_startup() -> tuple[bool, list[str]]:
@@ -79,13 +79,50 @@ def understand_existing(*, session_active_file: str | None, file_path: str | Non
     return understand_diagram(path)
 
 
-def plan_redefine(*, message: str, session_active_file: str | None, file_path: str | None, icon_set: str) -> tuple[Path, list[str]]:
-    path = resolve_existing_file(session_active_file=session_active_file, file_path=file_path)
-    changes = plan_prompt_delta(path, message, icon_set=icon_set)
-    return path, changes
+def _auto_name(file_name: str | None) -> str:
+    if file_name:
+        return slugify(file_name)
+    return now_name("arch")
 
 
-def apply_redefine(*, message: str, session_active_file: str | None, file_path: str | None, icon_set: str) -> tuple[Path, list[str]]:
-    path = resolve_existing_file(session_active_file=session_active_file, file_path=file_path)
-    changes = apply_prompt_delta(path, message, icon_set=icon_set)
-    return path, changes
+def plan_redefine(
+    *,
+    message: str,
+    session_active_file: str | None,
+    file_path: str | None,
+    file_name: str | None,
+    icon_set: str,
+) -> tuple[Path, list[str], bool]:
+    try:
+        path = resolve_existing_file(session_active_file=session_active_file, file_path=file_path)
+        changes = plan_prompt_delta(path, message, icon_set=icon_set)
+        return path, changes, True
+    except FileNotFoundError:
+        ensure_dirs()
+        draft_name = _auto_name(file_name)
+        draft_path = resolve_raw_file(draft_name)
+        services = parse_services(message)
+        changes = [f"would create {draft_path.name}"]
+        if services:
+            changes.extend([f"would add {svc}" for svc in services])
+        else:
+            changes.append("would generate architecture from prompt")
+        return draft_path, changes, False
+
+
+def apply_redefine(
+    *,
+    message: str,
+    session_active_file: str | None,
+    file_path: str | None,
+    file_name: str | None,
+    icon_set: str,
+) -> tuple[Path, list[str]]:
+    try:
+        path = resolve_existing_file(session_active_file=session_active_file, file_path=file_path)
+        changes = apply_prompt_delta(path, message, icon_set=icon_set)
+        return path, changes
+    except FileNotFoundError:
+        base_name = _auto_name(file_name)
+        out = generate_new(name=base_name, prompt=message, icon_set=icon_set)
+        return out, [f"generated {out.name}"]

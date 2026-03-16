@@ -27,6 +27,7 @@ export default tool({
       throw new Error(`validate request failed (${response.status}): ${body}`)
     }
 
-    return await response.json()
+    const payload = await response.json()
+    return JSON.stringify(payload, null, 2)
   },
 })

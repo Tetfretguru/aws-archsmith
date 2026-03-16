@@ -104,7 +104,8 @@ Redefine plan:
 ```json
 {
   "session_id": "<id>",
-  "message": "add EventBridge and connect EventBridge -> ECS Service"
+  "message": "add EventBridge and connect EventBridge -> ECS Service",
+  "file_name": "optional-new-file-when-no-active"
 }
 ```
 
@@ -113,9 +114,16 @@ Redefine apply:
 ```json
 {
   "session_id": "<id>",
-  "message": "add EventBridge and connect EventBridge -> ECS Service"
+  "message": "add EventBridge and connect EventBridge -> ECS Service",
+  "file_name": "optional-new-file-when-no-active"
 }
 ```
+
+Notes for redefine endpoints:
+
+- If `session_id` has an active file, operations run incrementally on that file.
+- If `file_path` is provided, it takes precedence.
+- If neither active file nor `file_path` exists, `plan` can still return a create-from-scratch plan and `apply` will generate a new diagram (using `file_name` or an auto name).
 
 ## Notes
 

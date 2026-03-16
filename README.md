@@ -260,11 +260,16 @@ This repo now includes project-local OpenCode agent configuration:
 
 Recommended flow in OpenCode:
 
-1. Start API server (`make api-up` or compose command).
-2. Run `/arch-start` to initialize/resume session.
+1. Run `/arch-bootstrap` (default `sqlite`; optional `/arch-bootstrap postgres`).
+2. Run `/arch-start` only if you need to explicitly resume a known session.
 3. Run `/arch-understand`.
 4. Run `/arch-redefine-plan <change request>`.
 5. Run `/arch-redefine-apply <same request>`.
+
+Redefine supports both modes:
+
+- Existing-diagram mode: use active session file or pass `file_path`.
+- Create-from-scratch mode: run plan/apply without active file and provide `file_name` in tool args when needed.
 
 ## Notes
 

@@ -8,6 +8,7 @@ export default tool({
     message: tool.schema.string().describe("Natural language redefine request"),
     session_id: tool.schema.string().optional().describe("Session id with active file context"),
     file_path: tool.schema.string().optional().describe("Optional explicit file path"),
+    file_name: tool.schema.string().optional().describe("Optional target file name when creating from scratch"),
     icon_set: tool.schema.enum(["aws4", "none"]).optional().describe("Icon set for service additions"),
   },
   async execute(args) {
@@ -18,6 +19,7 @@ export default tool({
         message: args.message,
         session_id: args.session_id,
         file_path: args.file_path,
+        file_name: args.file_name,
         icon_set: args.icon_set,
       }),
     })
@@ -27,6 +29,7 @@ export default tool({
       throw new Error(`redefine plan failed (${response.status}): ${body}`)
     }
 
-    return await response.json()
+    const payload = await response.json()
+    return JSON.stringify(payload, null, 2)
   },
 })

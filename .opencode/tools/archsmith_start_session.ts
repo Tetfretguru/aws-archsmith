@@ -23,6 +23,7 @@ export default tool({
       throw new Error(`start request failed (${response.status}): ${body}`)
     }
 
-    return await response.json()
+    const payload = await response.json()
+    return JSON.stringify(payload, null, 2)
   },
 })
