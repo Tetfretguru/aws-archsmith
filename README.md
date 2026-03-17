@@ -32,6 +32,9 @@ Describe your infrastructure in plain language. Archsmith generates deterministi
 - [Interactive CLI Commands](#-interactive-cli-commands)
 - [API Reference](#-api-reference)
 - [OpenCode Agent Mode](#-opencode-agent-mode)
+- [Agent Composition](#-agent-composition)
+- [Skills Workflow](#-skills-workflow)
+- [Tools and API Map](#-tools-and-api-map)
 - [Diagram Mechanics](#-diagram-mechanics)
 - [Repository Layout](#-repository-layout)
 - [QA & Validation](#-qa--validation)
@@ -395,6 +398,98 @@ Archsmith ships with a complete [OpenCode](https://opencode.ai) agent setup for 
 - **archsmith-plan** (default agent) — Read-only planning. Proposes deltas without mutations. Cannot edit files.
 - **archsmith-build** — Full implementation agent. Understands, plans, applies, and validates through API tools.
 - **archsmith-qa** — QA subagent. Reviews XML validity, orthogonal edges, overlap, and boundary semantics.
+
+### Agent Composition
+
+```mermaid
+flowchart LR
+  U[User Prompt or Slash Command] --> C{Command Router}
+
+  C -->|/arch-understand| P[archsmith-plan\nread-only]
+  C -->|/arch-redefine-plan| P
+  C -->|/arch-start| B[archsmith-build\nimplementation]
+  C -->|/arch-bootstrap| B
+  C -->|/arch-redefine-apply| B
+
+  P --> S1[drawio-understand]
+  P --> S2[drawio-redefine\nplan only]
+
+  B --> S2A[drawio-redefine\nplan + apply]
+  B --> S3[drawio-validate]
+  B --> Q[archsmith-qa\nquality gate]
+
+  Q --> R[Result: file path +\nvalidation + concrete changes]
+```
+
+- `archsmith-plan` is the default agent (`opencode.json`) and stays non-mutating.
+- `archsmith-build` executes mutation workflows and reports outcomes.
+- `archsmith-qa` validates architecture quality signals and returns actionable failures.
+
+### Skills Workflow
+
+```mermaid
+sequenceDiagram
+  participant A as Active Agent
+  participant SU as drawio-understand
+  participant SR as drawio-redefine
+  participant SV as drawio-validate
+  participant API as Archsmith API
+
+  A->>SU: Understand current diagram state
+  SU->>API: POST /v1/diagram/understand
+  API-->>SU: boundaries, services, unknowns, flows
+
+  A->>SR: Plan incremental change request
+  SR->>API: POST /v1/diagram/redefine/plan
+  API-->>SR: proposed deltas + expected impact
+
+  A->>SR: Apply same request
+  SR->>API: POST /v1/diagram/redefine/apply
+  API-->>SR: xml_path + changed[]
+
+  A->>SV: Validate updated XML
+  SV->>API: POST /v1/validate
+  API-->>SV: pass/fail + remediation hints
+```
+
+- Skills are composable recipes: understand first, then redefine, then validate.
+- Redefine remains incremental and keeps the same file unless explicitly changed.
+- Validation is the mandatory gate before downstream render workflows.
+
+### Tools and API Map
+
+```mermaid
+flowchart TB
+  subgraph OpenCode Tools
+    T1[archsmith_bootstrap]
+    T2[archsmith_start_session]
+    T3[archsmith_understand_diagram]
+    T4[archsmith_redefine_plan]
+    T5[archsmith_redefine_apply]
+    T6[archsmith_validate]
+  end
+
+  subgraph FastAPI Endpoints
+    E1[GET /health]
+    E2[POST /v1/start]
+    E3[POST /v1/diagram/understand]
+    E4[POST /v1/diagram/redefine/plan]
+    E5[POST /v1/diagram/redefine/apply]
+    E6[POST /v1/validate]
+  end
+
+  T1 --> E1
+  T1 --> E2
+  T2 --> E2
+  T3 --> E3
+  T4 --> E4
+  T5 --> E5
+  T6 --> E6
+```
+
+- Each tool is an API wrapper with validated args and JSON output.
+- No direct Python calls from tools; communication goes through HTTP endpoints.
+- `archsmith_bootstrap` is the only tool that also orchestrates Docker startup and health checks.
 
 ### Tool Design
 
