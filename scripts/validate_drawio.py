@@ -9,7 +9,9 @@ import sys
 import xml.etree.ElementTree as ET
 
 
-def has_overlap(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> bool:
+def has_overlap(
+    a: tuple[float, float, float, float], b: tuple[float, float, float, float]
+) -> bool:
     ax, ay, aw, ah = a
     bx, by, bw, bh = b
     return ax < bx + bw and ax + aw > bx and ay < by + bh and ay + ah > by
@@ -42,9 +44,18 @@ def validate_file(path: pathlib.Path) -> list[str]:
     if "0" not in ids or "1" not in ids:
         errors.append(f"{path}: required base mxCell ids 0 and 1 are missing")
 
+    edge_ids = {
+        cell.get("id")
+        for cell in graph_root.findall("mxCell")
+        if cell.get("edge") == "1"
+    }
+
     vertices: list[tuple[str, str, tuple[float, float, float, float]]] = []
     for cell in graph_root.findall("mxCell"):
         if cell.get("vertex") != "1":
+            continue
+        # Skip edge labels (vertices whose parent is an edge cell)
+        if cell.get("parent", "1") in edge_ids:
             continue
         geom = cell.find("mxGeometry")
         if geom is None:
@@ -56,11 +67,17 @@ def validate_file(path: pathlib.Path) -> list[str]:
             w = float(geom.get("width", "0"))
             h = float(geom.get("height", "0"))
         except ValueError:
-            errors.append(f"{path}: vertex id={cell.get('id')} has non-numeric geometry")
+            errors.append(
+                f"{path}: vertex id={cell.get('id')} has non-numeric geometry"
+            )
             continue
         if w <= 0 or h <= 0:
-            errors.append(f"{path}: vertex id={cell.get('id')} has non-positive geometry")
-        vertices.append((cell.get("id", "<unknown>"), cell.get("parent", "1"), (x, y, w, h)))
+            errors.append(
+                f"{path}: vertex id={cell.get('id')} has non-positive geometry"
+            )
+        vertices.append(
+            (cell.get("id", "<unknown>"), cell.get("parent", "1"), (x, y, w, h))
+        )
 
     for i in range(len(vertices)):
         for j in range(i + 1, len(vertices)):
@@ -69,7 +86,9 @@ def validate_file(path: pathlib.Path) -> list[str]:
             if parent1 != parent2:
                 continue
             if has_overlap(box1, box2):
-                errors.append(f"{path}: overlap detected between vertices {id1} and {id2}")
+                errors.append(
+                    f"{path}: overlap detected between vertices {id1} and {id2}"
+                )
 
     for cell in graph_root.findall("mxCell"):
         if cell.get("edge") != "1":
@@ -85,7 +104,9 @@ def validate_file(path: pathlib.Path) -> list[str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Validate drawio files")
-    parser.add_argument("path", nargs="?", default="architecture/raw", help="File or folder to validate")
+    parser.add_argument(
+        "path", nargs="?", default="architecture/raw", help="File or folder to validate"
+    )
     args = parser.parse_args()
 
     target = pathlib.Path(args.path)

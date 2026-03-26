@@ -3,10 +3,11 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.api
+    user: "${UID:-1000}:${GID:-1000}"
     working_dir: /workspace
     volumes:
       - ../:/workspace
-      - archsmith_api_data:/data
+      - ../.data:/data
     environment:
       ARCHSMITH_DB_URL: sqlite:////data/archsmith.db
     ports:
@@ -16,6 +17,7 @@ services:
     build:
       context: ..
       dockerfile: docker/Dockerfile.api
+    user: "${UID:-1000}:${GID:-1000}"
     profiles: ["postgres"]
     working_dir: /workspace
     volumes:
@@ -44,5 +46,4 @@ services:
       retries: 20
 
 volumes:
-  archsmith_api_data:
   archsmith_pg_data:
