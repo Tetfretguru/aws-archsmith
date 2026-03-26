@@ -1,6 +1,7 @@
 __pycache__/
 *.pyc
 .DS_Store
+node_modules/
 
 # Ignore working artifacts under architecture/
 architecture/**
