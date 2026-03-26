@@ -35,6 +35,7 @@ Describe your infrastructure in plain language. Archsmith generates deterministi
 - [Agent Composition](#-agent-composition)
 - [Skills Workflow](#-skills-workflow)
 - [Tools and API Map](#-tools-and-api-map)
+- [Hybrid Skill Integration](#-hybrid-skill-integration-drawio-skills)
 - [Diagram Mechanics](#-diagram-mechanics)
 - [Repository Layout](#-repository-layout)
 - [QA & Validation](#-qa--validation)
@@ -510,6 +511,82 @@ archsmith_validate.ts       → POST /v1/validate
 
 ---
 
+## 🎨 Hybrid Skill Integration: `drawio-skills`
+
+Archsmith now includes the external [`drawio-skills`](https://github.com/bahayonghang/drawio-skills) (v2.2.0) as a complementary design layer. This adds YAML-first workflows, 6 built-in themes, visual replication, and academic/engineering guardrails — without replacing the native API-first AWS architecture engine.
+
+### Two Skill Systems, One Repo
+
+| Layer | Location | Purpose | When to Use |
+|---|---|---|---|
+| **Native (Archsmith)** | `.opencode/skills/` | AWS structural changes, incremental redefine, XML validation | Infrastructure architecture, VPC/subnet/account boundaries, production diagrams |
+| **External (drawio)** | `.agents/skills/drawio/` | YAML-first design, theming, replicate, academic figures | Visual refinement, presentations, non-AWS diagrams, replication from reference images |
+
+### Decision Router
+
+```
+Is this an AWS infrastructure change?
+├── YES → Use native skills (drawio-understand → drawio-redefine → drawio-validate)
+│         Commands: /arch-redefine-plan, /arch-redefine-apply
+│         Validation: scripts/validate_drawio.py (mandatory)
+│
+└── NO → Is this visual refinement, theming, or replication?
+    ├── YES → Use external drawio skill
+    │         Routes: /drawio create, /drawio edit, /drawio replicate
+    │         Themes: tech-blue, academic, academic-color, nature, dark, high-contrast
+    │
+    └── HYBRID → Start with native for structure, then external for visual polish
+```
+
+### Available Themes (External Skill)
+
+| Theme | Best For |
+|---|---|
+| `tech-blue` | Engineering and system architecture |
+| `academic` | IEEE/paper figures (grayscale-safe) |
+| `academic-color` | Paper figures with color |
+| `nature` | Organic/green palettes |
+| `dark` | Dark mode presentations |
+| `high-contrast` | Accessibility and print |
+
+### Installation
+
+The external skill is installed via:
+
+```bash
+npx skills add https://github.com/bahayonghang/drawio-skills --skill drawio
+```
+
+After installation, restart your OpenCode client to reload skills.
+
+### Artifact Conventions
+
+| Route | Output Location | Artifacts |
+|---|---|---|
+| Native (AWS) | `architecture/raw/` | `.drawio` only (XML source of truth) |
+| External (visual) | project root or `architecture/raw/` | `.drawio` + `.spec.yaml` + `.arch.json` (canonical bundle) |
+
+> **Rule**: Any diagram entering `architecture/raw/` as a production artifact must pass `scripts/validate_drawio.py` regardless of which skill generated it.
+
+### Repository Layout (Updated)
+
+```
+aws-archsmith/
+├── 📂 .opencode/skills/              # Native Archsmith skills (API-first)
+│   ├── drawio-understand/            #   Inspect diagram state
+│   ├── drawio-redefine/              #   Plan + apply incremental changes
+│   └── drawio-validate/              #   Validate XML structure
+│
+├── 📂 .agents/skills/drawio/         # External drawio-skills (YAML-first)
+│   ├── SKILL.md                      #   Skill definition and routing
+│   ├── references/                   #   Workflows, design system, docs
+│   ├── scripts/                      #   CLI, DSL compiler, SVG renderer
+│   ├── assets/                       #   Themes and sample diagrams
+│   └── evals/                        #   Evaluation fixtures
+```
+
+---
+
 ## 📐 Diagram Mechanics
 
 ### XML Structure
@@ -586,10 +663,20 @@ aws-archsmith/
 │   ├── skills/                   # drawio-understand, drawio-redefine, drawio-validate
 │   └── commands/                 # Slash commands for OpenCode
 │
+├── 📂 .agents/
+│   └── skills/
+│       └── drawio/               # External drawio-skills (YAML-first, v2.2.0)
+│           ├── SKILL.md          # Skill definition, routing, and rules
+│           ├── references/       # Workflows (create/edit/replicate), design system
+│           ├── scripts/          # CLI, DSL compiler, math, SVG renderer
+│           ├── assets/           # 6 themes + sample diagrams
+│           └── evals/            # Evaluation fixtures
+│
 ├── 📂 docs/
 │   ├── API.md                    # API endpoint reference
 │   ├── USER_GUIDE.md             # Interactive CLI user guide
-│   └── API_TEST_RUN.md           # Manual API test run record
+│   ├── API_TEST_RUN.md           # Manual API test run record
+│   └── PRD_DRAWIO_SKILL_INTEGRACION.md  # Integration PRD
 │
 └── 📂 examples/
     └── api.http                  # HTTP request samples
