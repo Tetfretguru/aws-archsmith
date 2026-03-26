@@ -71,6 +71,9 @@ export default tool({
         "/arch-understand",
         "/arch-redefine-plan <request>",
         "/arch-redefine-apply <request>",
+        "/arch-generate <spec-name> (e.g. cloud-reference-architecture)",
+        "/arch-to-spec <file.drawio>",
+        "/arch-theme <theme-name> (e.g. dark, tech-blue, nature)",
       ],
     }
     return JSON.stringify(payload, null, 2)
